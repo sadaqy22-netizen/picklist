@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Pick List</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;}
+    body{background:#111;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+    .hdr{position:relative;background:#1a1a1a;border-bottom:2px solid #00c853;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .hdr-left{display:flex;flex-direction:column;gap:2px;}
+    .hdr-title{font-size:16px;font-weight:700;}
+    .hdr-sub{font-size:11px;color:#555;}
+    .filler-row{background:#161616;border-bottom:1px solid #222;padding:8px 12px;display:flex;gap:7px;flex-shrink:0;}
+    .filler-btn{flex:1;padding:8px 4px;border-radius:10px;font-size:14px;font-weight:700;border:1.5px solid #2a2a2a;color:#555;cursor:pointer;touch-action:manipulation;transition:all .15s;text-align:center;}
+    .filler-btn.active{border-color:#00c853;color:#00c853;background:rgba(0,200,83,.08);}
+    .prog-track{height:4px;background:#1e1e1e;flex-shrink:0;}
+    .prog-fill{height:100%;background:#00c853;transition:width .35s ease;}
+    .tabs{background:#0f0f0f;border-bottom:1px solid #1a1a1a;padding:8px 12px;display:flex;gap:6px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab{flex-shrink:0;padding:6px 12px;border-radius:12px;font-size:12px;font-weight:600;border:1px solid #222;color:#444;cursor:pointer;touch-action:manipulation;transition:all .15s;white-space:nowrap;}
+    .tab.cur{border-color:#00c853;color:#00c853;background:rgba(0,200,83,.07);}
+    .tab.done{border-color:#1a1a1a;color:#2a2a2a;text-decoration:line-through;}
+    .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 18px 8px;overflow:hidden;}
+    .loc-name{font-size:12px;color:#555;text-align:center;margin-bottom:3px;}
+    .count{font-size:11px;color:#333;margin-bottom:14px;}
+    .card{width:100%;max-width:340px;background:#1a1a1a;border:2px solid #00c853;border-radius:18px;padding:24px 20px;text-align:center;margin-bottom:16px;box-shadow:0 0 30px rgba(0,200,83,.06);}
+    .card-lbl{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:2px;margin-bottom:7px;}
+    .card-name{font-size:30px;font-weight:800;color:#fff;margin-bottom:14px;line-height:1.2;}
+    .qty-row{display:flex;align-items:center;justify-content:center;gap:10px;}
+    .qty-lbl{font-size:12px;color:#555;}
+    .qty-val{font-size:56px;font-weight:900;color:#00c853;line-height:1;text-shadow:0 0 18px rgba(0,200,83,.3);}
+    .fb{font-size:13px;color:#333;min-height:20px;margin-bottom:12px;text-align:center;transition:color .15s;}
+    .fb.ok{color:#00c853;}.fb.err{color:#ff6b6b;}
+    .btn-row{display:flex;gap:12px;width:100%;max-width:340px;}
+    .btn-pick{flex:3;padding:32px 22px;background:#00c853;color:#000;font-size:24px;font-weight:900;border:none;border-radius:16px;cursor:pointer;touch-action:manipulation;min-height:90px;}
+    .btn-pick:active{background:#00a843;transform:scale(0.98);}
+    .btn-skip{flex:1;padding:32px 12px;background:#1e1e1e;color:#888;font-size:15px;font-weight:700;border:1.5px solid #333;border-radius:16px;cursor:pointer;touch-action:manipulation;min-height:90px;}
+    .btn-skip:active{background:#2a2a2a;}
+    .btn-mic{width:100%;max-width:340px;padding:13px;background:transparent;color:#444;font-size:13px;font-weight:600;border:1px solid #222;border-radius:12px;cursor:pointer;touch-action:manipulation;margin-top:10px;}
+    .btn-mic:active{background:#1a1a1a;}
+    .net-pill{position:fixed;top:8px;right:8px;padding:5px 10px;border-radius:12px;font-size:10px;font-weight:700;z-index:1000;display:none;}
+    .net-pill.offline{display:block;background:#3a1010;color:#ff6b6b;border:1px solid #ff6b6b;}
+    .net-pill.online{display:block;background:#0a2a14;color:#00c853;border:1px solid #00c853;animation:fadeOut 2s forwards;animation-delay:1.5s;}
+    @keyframes fadeOut{to{opacity:0;display:none;}}
+    .done-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center;gap:14px;}
+    .done-icon{font-size:60px;}
+    .done-title{font-size:24px;font-weight:800;color:#00c853;}
+    .done-sub{font-size:14px;color:#666;line-height:1.6;}
+    .skip-box{background:#1a1a1a;border:1px solid #1e1e1e;border-radius:12px;padding:14px 18px;width:100%;max-width:320px;text-align:left;max-height:180px;overflow-y:auto;}
+    .skip-hdr{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+    .skip-row{font-size:12px;color:#666;padding:4px 0;border-bottom:1px solid #1a1a1a;}
+    .skip-row:last-child{border:none;}
+    .btn-restart{background:#1a1a1a;border:1.5px solid #222;color:#888;border-radius:12px;padding:12px 28px;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;}
+  </style>
+</head>
+<body>
+<div id="netPill" class="net-pill"></div>
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-title">🏪 Pick List <span id="hdrDate"></span></div>
+    <div class="hdr-sub" id="hdrSub">Select a filler to start</div>
+  </div>
+</div>
+<div class="filler-row" id="fillerRow"></div>
+<div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+<div class="tabs" id="tabs"></div>
+<div id="screenPick" class="body" style="display:none">
+  <div class="loc-name" id="locName"></div>
+  <div class="count" id="countTxt"></div>
+  <div class="card">
+    <div class="card-lbl">Pick</div>
+    <div class="card-name" id="itemName">—</div>
+    <div class="qty-row"><div class="qty-lbl">Qty</div><div class="qty-val" id="itemQty">0</div></div>
+  </div>
+  <div class="fb" id="fb"></div>
+  <div class="btn-row">
+    <button class="btn-pick" onclick="confirmPick()">✓ PICKED</button>
+    <button class="btn-skip" onclick="skipItem()">SKIP</button>
+  </div>
+  <button class="btn-mic" id="micBtn" onclick="toggleMic()">🎤 Start Voice</button>
+</div>
+<div id="screenDone" style="display:none;flex:1;">
+  <div class="done-body">
+    <div class="done-icon">✅</div>
+    <div class="done-title" id="doneTitle">Done!</div>
+    <div class="done-sub" id="doneSub"></div>
+    <div class="skip-box" id="skipBox" style="display:none">
+      <div class="skip-hdr">Skipped Items</div>
+      <div id="skipList"></div>
+    </div>
+    <button class="btn-restart" onclick="restart()">↩ Back to Fillers</button>
+  </div>
+</div>
+<script>
+const ROUTES = {
+  Dadir: [
+    { trip:1, loc:"131183 12 L U Simon", items:[{n:"Coke Zero",q:4},{n:"Pepsi max",q:1},{n:"Coke",q:6},{n:"Pasito",q:1},{n:"Sunkist zero Sugar",q:1},{n:"V energy",q:1},{n:"Solo zero Sugar",q:3},{n:"V Blue",q:4},{n:"Red bull",q:1},{n:"Mother Sugar free",q:2},{n:"Gatorade",q:3},{n:"Water",q:4},{n:"Dairy",q:7},{n:"Twix",q:3},{n:"Boost",q:7},{n:"Muesli",q:3},{n:"Mars bar",q:1},{n:"Kit Kat",q:4},{n:"Salted Caramel",q:2},{n:"White Choc M",q:1},{n:"Noodles",q:1},{n:"RR chilli",q:3}] },
+    { trip:2, loc:"106955 46 Mainbrace Sunbury", items:[{n:"Coke Zero",q:3},{n:"Pepsi max",q:6},{n:"Coconut water",q:2},{n:"Coke",q:5},{n:"V energy",q:1},{n:"V Blue",q:6},{n:"V energy Sugar Free",q:3},{n:"Pasito",q:2},{n:"Sunkist zero Sugar",q:3},{n:"Solo zero Sugar",q:1},{n:"Sunkist",q:5},{n:"Solo",q:2},{n:"Red bull",q:1},{n:"Red bull sugar free",q:2},{n:"Mother Sugar free",q:10},{n:"Gatorade No Sugar",q:5},{n:"Gatorade",q:4},{n:"Water",q:1},{n:"Boost",q:8},{n:"Aero mint",q:6},{n:"Mars bar",q:7},{n:"Twix",q:4},{n:"Dairy",q:2},{n:"Choc oat",q:4},{n:"Apricot yoghurt",q:1},{n:"Snickers",q:8},{n:"Kit Kat",q:1},{n:"Choc Chip",q:7},{n:"Noodles",q:6},{n:"Tuna Treats",q:5},{n:"White Choc M",q:3},{n:"Smith Ck",q:1},{n:"Shapes BBQ",q:1},{n:"Smith Sv",q:8},{n:"RR chilli",q:5}] },
+    { trip:3, loc:"110690 40 Aga", items:[{n:"Coke Zero",q:2},{n:"Sunkist Zero Sugar",q:2},{n:"Coke",q:6},{n:"Pasito",q:2},{n:"Pepsi max",q:4},{n:"Sunkist",q:2},{n:"Solo",q:2},{n:"Up &go pro",q:14},{n:"Lipton Peach Iced Tea",q:6},{n:"Gatorade",q:5},{n:"Aloe Vera Drink 2",q:5},{n:"Water",q:6},{n:"Boost",q:6},{n:"aero mint",q:9},{n:"Mars bar",q:4},{n:"Kit Kat",q:4},{n:"Twix",q:2},{n:"Dairy",q:3},{n:"Snickers",q:6},{n:"Apricot yoghurt",q:1},{n:"Choc oat",q:2},{n:"Choc Chip",q:6},{n:"Noodles",q:12},{n:"White Choc M",q:1},{n:"Salted Caramel",q:3},{n:"mix lollies",q:2},{n:"RR chilli",q:8},{n:"RR honey",q:5},{n:"Smith Sv",q:1}] },
+    { trip:4, loc:"D71144 28 Build Derrimut", items:[{n:"Coke Zero",q:4},{n:"Pepsi max",q:7},{n:"Coke",q:7},{n:"V energy",q:4},{n:"Sunkist zero Sugar",q:3},{n:"Solo zero Sugar",q:1},{n:"Sunkist",q:1},{n:"Solo",q:5},{n:"Red bull",q:3},{n:"Mother Sugar free",q:6},{n:"Gatorade",q:4},{n:"Water",q:3},{n:"Boost",q:5},{n:"Dairy",q:2},{n:"Aero mint",q:1},{n:"Kit Kat",q:4},{n:"Mars bar",q:1},{n:"Snickers",q:2},{n:"White Choc M",q:6},{n:"Noodles",q:1},{n:"Salted Caramel",q:5},{n:"Smith Sv",q:7},{n:"RR honey",q:4},{n:"RR chilli",q:8}] },
+    { trip:5, loc:"110715 37 Kapital Brooklyn", items:[{n:"Coke Zero",q:9},{n:"Pepsi max",q:12},{n:"Sunkist Zero Sugar",q:3},{n:"Solo Zero Sugar",q:1},{n:"Coke",q:10},{n:"V energy",q:5},{n:"V Energy Sugar Free",q:6},{n:"Red bull sugar free",q:6},{n:"Creaming Soda",q:6},{n:"Lemonade",q:1},{n:"Pasito",q:4},{n:"Sunkist",q:3},{n:"Solo",q:3},{n:"V Blue",q:4},{n:"Red bull",q:12},{n:"Powerade",q:3},{n:"Lipton Peach Iced Tea",q:2},{n:"Mother Sugar free",q:8},{n:"Gatorade No Sugar",q:2},{n:"Gatorade",q:1},{n:"Aloe Vera Drink 2",q:3},{n:"Water",q:5},{n:"Boost",q:10},{n:"Carmens Protein New",q:1},{n:"Kit Kat",q:16},{n:"Dairy",q:9},{n:"aero mint",q:4},{n:"Wagon wheels",q:2},{n:"Muesli",q:1},{n:"Mars bar",q:7},{n:"Aitken Bar",q:5},{n:"Snickers",q:4},{n:"Twix",q:9},{n:"White Choc M",q:4},{n:"mix lollies",q:4},{n:"Tuna Treats",q:2},{n:"Choc Chip",q:6},{n:"Salted Caramel",q:4},{n:"Smith Ck",q:2},{n:"Shapes BBQ",q:3},{n:"Noodles",q:5},{n:"RR chilli",q:1},{n:"RR honey",q:2},{n:"Smith Sv",q:1}] },
+    { trip:6, loc:"106747 71 Saw Construction", items:[{n:"Coke Zero",q:2},{n:"Pepsi max",q:4},{n:"Coke",q:6},{n:"V Blue",q:4},{n:"V energy",q:4},{n:"Pasito",q:2},{n:"Coconut water",q:2},{n:"Sunkist",q:2},{n:"Red bull",q:1},{n:"Gatorade",q:1},{n:"Mother Sugar free",q:4},{n:"Dairy",q:1},{n:"Boost",q:2},{n:"Kit Kat",q:4},{n:"Snickers",q:2},{n:"Choc Chip",q:5},{n:"Noodles",q:1},{n:"mix lollies",q:3},{n:"RR honey",q:1},{n:"RR chilli",q:1}] },
+    { trip:7, loc:"224806 76 Milvac Brunswick", items:[{n:"Coke Zero",q:8},{n:"Pepsi max",q:4},{n:"Coke",q:8},{n:"V energy",q:5},{n:"Coconut water",q:6},{n:"Red bull sugar free",q:6},{n:"Pasito",q:1},{n:"Creaming Soda",q:3},{n:"Solo",q:2},{n:"V Blue",q:4},{n:"Red bull",q:11},{n:"Lipton Peach Iced Tea",q:2},{n:"Gatorade No Sugar",q:2},{n:"Mother Sugar free",q:3},{n:"Aloe Vera Drink",q:1},{n:"Gatorade",q:3},{n:"Water",q:4},{n:"Carmens Protein New",q:3},{n:"Twix",q:3},{n:"Boost",q:3},{n:"Dairy",q:3},{n:"Muesli",q:1},{n:"Wagon wheels",q:6},{n:"Snickers",q:4},{n:"Mars bar",q:6},{n:"Kit Kat",q:10},{n:"Choc Chip",q:1},{n:"Tuna Treats",q:1},{n:"Salted Caramel",q:2},{n:"White Choc M",q:8},{n:"mix lollies",q:4},{n:"Smith Ck",q:2},{n:"Shapes BBQ",q:7},{n:"Smith Sv",q:5},{n:"Noodles",q:2},{n:"RR honey",q:4},{n:"RR chilli",q:3}] },
+    { trip:8, loc:"130708 57 Pace Brunswick", items:[{n:"Pepsi max",q:5},{n:"Coke",q:4},{n:"Pasito",q:2},{n:"Coke Zero",q:7},{n:"Sunkist",q:4},{n:"Solo",q:5},{n:"V Blue",q:7},{n:"Red bull",q:1},{n:"Lipton Peach Iced Tea",q:1},{n:"Gatorade",q:2},{n:"Mother Sugar free",q:3},{n:"Water",q:3},{n:"Twix",q:1},{n:"Boost",q:7},{n:"Wagon wheels",q:2},{n:"Choc oat",q:1},{n:"Salted Caramel",q:2},{n:"mix lollies",q:1},{n:"Smith Sv",q:6},{n:"RR chilli",q:3}] },
+    { trip:9, loc:"110810 43 Instu Mernda", items:[{n:"Coke Zero",q:6},{n:"Pepsi max",q:12},{n:"Coke",q:2},{n:"V energy",q:2},{n:"Sunkist Zero Sugar",q:2},{n:"Pasito",q:2},{n:"Solo Zero Sugar",q:4},{n:"Solo",q:2},{n:"V Blue",q:1},{n:"Red bull",q:3},{n:"Mother Sugar free",q:4},{n:"Gatorade",q:5},{n:"Muesli",q:2},{n:"Boost",q:7},{n:"Wagon wheels",q:2},{n:"Choc oat",q:1},{n:"Apricot yoghurt",q:1},{n:"Snickers",q:2},{n:"Salted Caramel",q:3},{n:"Choc Chip",q:7},{n:"RR chilli",q:4},{n:"mix lollies",q:2}] },
+    { trip:10, loc:"D70895 83 Barrawang Primary School", items:[{n:"Coke Zero",q:5},{n:"Pepsi max",q:9},{n:"Coke",q:3},{n:"V energy",q:3},{n:"V energy Sugar Free",q:3},{n:"Solo",q:1},{n:"Red bull sugar free",q:6},{n:"Red bull",q:7},{n:"Mother Sugar free",q:5},{n:"Gatorade",q:1},{n:"Water",q:4},{n:"Snickers",q:7},{n:"Dairy",q:3},{n:"Kit Kat",q:1},{n:"Apricot yoghurt",q:7},{n:"Aitken Bar",q:7},{n:"Choc Chip",q:3},{n:"Noodles",q:2},{n:"White Choc M",q:1},{n:"RR honey",q:2},{n:"RR chilli",q:5}] },
+  ],
+  Sami: [
+    { trip:1, loc:"193058 36 Shape CBD L12", items:[{n:"Pepsi max",q:6},{n:"Sunkist Zero Sugar",q:5},{n:"Coke",q:7},{n:"V energy",q:3},{n:"Red bull",q:1},{n:"Coke Zero",q:11},{n:"Sunkist",q:1},{n:"Solo",q:1},{n:"V Blue",q:3},{n:"Lipton Peach Iced Tea",q:5},{n:"Mother Sugar free",q:4},{n:"Gatorade",q:5},{n:"Water",q:3},{n:"Dairy",q:2},{n:"Muesli",q:1},{n:"Kit Kat",q:7},{n:"Boost",q:8},{n:"Snickers",q:5},{n:"White Choc M",q:1},{n:"Noodles",q:1},{n:"mix lollies",q:2}] },
+    { trip:2, loc:"186978 07 Manresa Construction", items:[{n:"Coke Zero",q:6},{n:"Pepsi max",q:1},{n:"Sunkist zero Sugar",q:1},{n:"Coke",q:6},{n:"Solo zero Sugar",q:1},{n:"V energy",q:4},{n:"Pasito",q:2},{n:"Solo",q:1},{n:"Sunkist",q:3},{n:"V Blue",q:4},{n:"Red bull",q:2},{n:"Mother Sugar free",q:3},{n:"Aloe Vera Drink 2",q:4},{n:"Water",q:4},{n:"Kit Kat",q:1},{n:"Dairy",q:2},{n:"Boost",q:6},{n:"Snickers",q:3},{n:"White Choc M",q:3},{n:"Shapes BBQ",q:2}] },
+    { trip:3, loc:"153997 29 Instu Chelsea Heights", items:[{n:"Coke Zero",q:4},{n:"Pepsi max",q:5},{n:"Solo zero Sugar",q:1},{n:"Coke",q:11},{n:"V energy",q:5},{n:"Red bull",q:2},{n:"Red bull sugar free",q:1},{n:"Sunkist",q:2},{n:"Solo",q:6},{n:"V energy Sugar Free",q:2},{n:"Water",q:1},{n:"Gatorade",q:3},{n:"Gatorade No Sugar",q:1},{n:"Mother Sugar free",q:8},{n:"Twix",q:5},{n:"Boost",q:1},{n:"Kit Kat",q:1},{n:"White Choc M",q:10},{n:"Noodles",q:2},{n:"Salted Caramel",q:1},{n:"mix lollies",q:3},{n:"RR honey",q:6},{n:"RR chilli",q:5}] },
+    { trip:4, loc:"112396 03 Aga Korumburra", items:[{n:"Coke Zero",q:3},{n:"Solo zero Sugar",q:3},{n:"Coke",q:8},{n:"Pepsi max",q:7},{n:"Creaming Soda",q:4},{n:"Pasito",q:4},{n:"Sunkist zero Sugar",q:3},{n:"Solo",q:4},{n:"Coconut water",q:1},{n:"Aloe Vera Drink 2",q:3},{n:"Gatorade",q:5},{n:"Lipton Peach Iced Tea",q:1},{n:"Water",q:3},{n:"Kit Kat",q:7},{n:"Boost",q:3},{n:"Twix",q:3},{n:"Snickers",q:2},{n:"Dairy",q:3},{n:"Salted Caramel",q:3},{n:"Shapes BBQ",q:1},{n:"Smith Sv",q:3},{n:"mix lollies",q:3},{n:"RR chilli",q:2}] },
+    { trip:5, loc:"275959 78 Aga Warragul", items:[{n:"Coke Zero",q:7},{n:"Pepsi max",q:16},{n:"Solo Zero Sugar",q:3},{n:"Sunkist Zero Sugar",q:1},{n:"Coke",q:15},{n:"Coconut water",q:2},{n:"Creaming Soda",q:5},{n:"Pasito",q:9},{n:"Lemonade",q:1},{n:"Sunkist",q:2},{n:"Solo",q:3},{n:"Up &go pro",q:14},{n:"Lipton Peach Iced Tea",q:9},{n:"Gatorade No Sugar",q:2},{n:"Gatorade",q:9},{n:"Aloe Vera Drink 2",q:3},{n:"Water",q:2},{n:"Mars bar",q:3},{n:"Carmens Protein New",q:1},{n:"Boost",q:10},{n:"Kit Kat",q:8},{n:"Dairy",q:6},{n:"aero mint",q:8},{n:"Wagon wheels",q:1},{n:"Apricot yoghurt",q:1},{n:"Choc oat",q:3},{n:"Snickers",q:2},{n:"Twix",q:1},{n:"Choc Chip",q:2},{n:"mix lollies",q:4},{n:"White Choc M",q:1},{n:"Salted Caramel",q:3},{n:"Smith Ck",q:1},{n:"Shapes BBQ",q:4},{n:"Noodles",q:8},{n:"RR chilli",q:8},{n:"RR honey",q:8},{n:"Smith Sv",q:2}] },
+    { trip:6, loc:"116705 62 Mainbrace Warragul Right", items:[{n:"Coke Zero",q:3},{n:"Pepsi max",q:3},{n:"Coke",q:7},{n:"Red bull sugar free",q:1},{n:"V energy",q:1},{n:"Pasito",q:4},{n:"Sunkist",q:1},{n:"V Energy Sugar Free",q:1},{n:"Red bull",q:2},{n:"Gatorade No Sugar",q:1},{n:"Mother Sugar free",q:2},{n:"Water",q:2},{n:"Kit Kat",q:7},{n:"Twix",q:1},{n:"Wagon wheels",q:3},{n:"Choc oat",q:3},{n:"Apricot yoghurt",q:1},{n:"Choc Chip",q:2},{n:"Noodles",q:4},{n:"Salted Caramel",q:6},{n:"Smith Sv",q:1},{n:"Shapes BBQ",q:6},{n:"RR chilli",q:1}] },
+    { trip:7, loc:"106929 32 Mainbrace Warragul Left", items:[{n:"Coke Zero",q:1},{n:"Pepsi max",q:5},{n:"Coconut water",q:2},{n:"Sunkist zero Sugar",q:2},{n:"Coke",q:8},{n:"V energy",q:2},{n:"V energy Sugar Free",q:1},{n:"Sunkist",q:1},{n:"Solo",q:3},{n:"Red bull sugar free",q:4},{n:"Red bull",q:3},{n:"Gatorade",q:1},{n:"Gatorade No Sugar",q:1},{n:"Dairy",q:4},{n:"Twix",q:7},{n:"Muesli",q:3},{n:"Kit Kat",q:6},{n:"Snickers",q:4},{n:"Mars bar",q:3},{n:"Choc Chip",q:4},{n:"White Choc M",q:1},{n:"Noodles",q:3},{n:"mix lollies",q:3},{n:"RR honey",q:3},{n:"RR chilli",q:1}] },
+    { trip:8, loc:"106653 52 Newpol Balwyn", items:[{n:"Coke Zero",q:2},{n:"Pepsi max",q:1},{n:"Sunkist zero Sugar",q:1},{n:"Coke",q:6},{n:"V energy",q:2},{n:"V Blue",q:4},{n:"Pasito",q:3},{n:"Red bull",q:2},{n:"Red bull sugar free",q:7},{n:"Mother Sugar free",q:5},{n:"Gatorade No Sugar",q:2},{n:"Gatorade",q:1},{n:"aero mint",q:4},{n:"Boost",q:10},{n:"Kit Kat",q:5},{n:"Twix",q:2},{n:"Muesli",q:1},{n:"White Choc M",q:8},{n:"Noodles",q:2},{n:"Choc Chip",q:2},{n:"RR chilli",q:6},{n:"RR honey",q:3}] },
+    { trip:9, loc:"171593 66 Sinjen Kew", items:[{n:"Pepsi max",q:3},{n:"Solo Zero Sugar",q:1},{n:"Coke",q:9},{n:"V energy",q:11},{n:"V Blue",q:6},{n:"Coconut water",q:2},{n:"Solo",q:1},{n:"Red bull",q:9},{n:"Aloe Vera Drink 2",q:1},{n:"Mother Sugar free",q:4},{n:"Gatorade",q:5},{n:"Water",q:1},{n:"Kit Kat",q:3},{n:"Mars bar",q:1},{n:"Choc oat",q:5},{n:"Boost",q:7},{n:"Salted Caramel",q:7},{n:"Noodles",q:4},{n:"mix lollies",q:7},{n:"RR honey",q:1},{n:"Smith Ck",q:4},{n:"RR chilli",q:5}] },
+    { trip:10, loc:"117693 51 Bldg Engineering", items:[{n:"Coke Zero",q:14},{n:"Pepsi max",q:7},{n:"Sunkist Zero Sugar",q:2},{n:"Coke",q:1},{n:"V energy",q:2},{n:"Red bull sugar free",q:1},{n:"Coconut water",q:1},{n:"Creaming Soda",q:1},{n:"Pasito",q:2},{n:"V Blue",q:5},{n:"Lipton Peach Iced Tea",q:1},{n:"Aloe Vera Drink",q:1},{n:"Mother Sugar free",q:7},{n:"Water",q:3},{n:"Boost",q:8},{n:"Kit Kat",q:1},{n:"Carmens Protein New",q:2},{n:"Muesli",q:7},{n:"Snickers",q:5},{n:"aero mint",q:3},{n:"Apricot yoghurt",q:2},{n:"Mars bar",q:1},{n:"Wagon wheels",q:1},{n:"Choc oat",q:2},{n:"Dairy",q:5},{n:"Twix",q:5},{n:"White Choc M",q:9},{n:"Noodles",q:8},{n:"Choc Chip",q:7},{n:"mix lollies",q:1},{n:"Smith Ck",q:1},{n:"Shapes BBQ",q:4},{n:"Smith Sv",q:5},{n:"RR honey",q:2},{n:"RR chilli",q:2}] },
+  ],
+  Sadaq: [
+    { trip:1, loc:"276378 19 Kapitol Construction Induction", items:[{n:"Coke Zero",q:12},{n:"Sunkist Zero Sugar",q:2},{n:"Solo Zero Sugar",q:1},{n:"Pepsi max",q:4},{n:"Coke",q:3},{n:"V Energy Sugar Free",q:1},{n:"V energy",q:6},{n:"Red bull sugar free",q:2},{n:"Pasito",q:1},{n:"Lemonade",q:1},{n:"Solo",q:1},{n:"V Blue",q:1},{n:"Red bull",q:3},{n:"Lipton Peach Iced Tea",q:2},{n:"Mother Sugar free",q:5},{n:"Gatorade",q:4},{n:"Aloe Vera Drink 2",q:2},{n:"Water",q:4},{n:"aero mint",q:3},{n:"Twix",q:3},{n:"Boost",q:14},{n:"Dairy",q:5},{n:"Muesli",q:1},{n:"Choc oat",q:2},{n:"Wagon wheels",q:2},{n:"Snickers",q:1},{n:"Mars bar",q:2},{n:"Kit Kat",q:5},{n:"Choc Chip",q:3},{n:"Noodles",q:1},{n:"Tuna Treats",q:2},{n:"White Choc M",q:2},{n:"mix lollies",q:1},{n:"Shapes BBQ",q:1},{n:"beef",q:1},{n:"Smith Sv",q:2},{n:"RR honey",q:1},{n:"RR chilli",q:3}] },
+    { trip:2, loc:"106595 38 Kapitol Construction Left", items:[{n:"Coke Zero",q:3},{n:"Pepsi max",q:8},{n:"Solo zero Sugar",q:3},{n:"Coke",q:4},{n:"V energy",q:7},{n:"V Blue",q:5},{n:"V energy Sugar Free",q:5},{n:"Coconut water",q:4},{n:"Pasito",q:1},{n:"Red bull",q:6},{n:"Lipton Peach Iced Tea",q:3},{n:"Gatorade",q:7},{n:"Gatorade No Sugar",q:3},{n:"Mother Sugar free",q:10},{n:"Twix",q:4},{n:"Aitken Bar",q:2},{n:"Snickers",q:1},{n:"Kit Kat",q:4},{n:"Dairy",q:5},{n:"Muesli",q:1},{n:"Mars bar",q:4},{n:"Boost",q:16},{n:"Aero mint",q:1},{n:"White Choc M",q:5},{n:"Noodles",q:1},{n:"Tuna Pasta",q:6},{n:"Salted Caramel",q:5},{n:"Choc Chip",q:2},{n:"mix lollies",q:1},{n:"Smith Ck",q:2},{n:"Tuna Treats",q:1},{n:"Shapes BBQ",q:3},{n:"Smith Sv",q:2},{n:"RR honey",q:1},{n:"RR chilli",q:2}] },
+    { trip:3, loc:"276406 56 Kapitol Construction Right", items:[{n:"Coke Zero",q:18},{n:"Pepsi max",q:9},{n:"Coke",q:13},{n:"V energy",q:12},{n:"Coconut water",q:3},{n:"Red bull",q:7},{n:"Lemonade",q:3},{n:"Sunkist",q:3},{n:"Solo",q:2},{n:"sparkling water",q:2},{n:"Powerade",q:1},{n:"Gatorade No Sugar",q:5},{n:"Water",q:7},{n:"Boost",q:10},{n:"Twix",q:5},{n:"Extra gum",q:10},{n:"Dairy",q:7},{n:"Snickers",q:3},{n:"Aitken Bar",q:1},{n:"Apricot yoghurt",q:1},{n:"Choc oat",q:1},{n:"Mars bar",q:3},{n:"Kit Kat",q:4},{n:"Choc Chip",q:2},{n:"Noodles",q:2},{n:"Salted Caramel",q:4},{n:"White Choc M",q:2},{n:"Shapes BBQ",q:4},{n:"Tuna Treats",q:1},{n:"Smith Sv",q:3},{n:"RR honey",q:2},{n:"RR chilli",q:1}] },
+    { trip:4, loc:"170244 20 Kapitol Construction Out", items:[{n:"Coke Zero",q:11},{n:"Pepsi max",q:4},{n:"Sunkist zero Sugar",q:2},{n:"Coke",q:6},{n:"V energy Sugar Free",q:7},{n:"V Blue",q:6},{n:"V energy",q:6},{n:"Pasito",q:1},{n:"Sunkist",q:1},{n:"Solo",q:2},{n:"Red bull",q:7},{n:"Red bull sugar free",q:3},{n:"Gatorade No Sugar",q:3},{n:"Powerade",q:5},{n:"Mother Sugar free",q:8},{n:"Water",q:9},{n:"Mars bar",q:7},{n:"Boost",q:10},{n:"Snickers",q:8},{n:"Twix",q:5},{n:"Aitken Bar",q:2},{n:"Dairy",q:10},{n:"Muesli",q:3},{n:"Aero mint",q:2},{n:"Kit Kat",q:5},{n:"Salted Caramel",q:1},{n:"Noodles",q:1},{n:"White Choc M",q:4},{n:"Choc Chip",q:5},{n:"Shapes BBQ",q:3},{n:"RR honey",q:2},{n:"RR chilli",q:1}] },
+    { trip:5, loc:"285569 48 Kapitol Construction Middle", items:[{n:"Coke Zero",q:18},{n:"Pepsi max",q:8},{n:"Pasito",q:3},{n:"Sunkist zero Sugar",q:2},{n:"Coke",q:7},{n:"V energy",q:11},{n:"V Blue",q:4},{n:"V energy Sugar Free",q:8},{n:"Red bull sugar free",q:2},{n:"Creaming Soda",q:2},{n:"Sunkist",q:1},{n:"Solo zero Sugar",q:1},{n:"Lemonade",q:1},{n:"Solo",q:1},{n:"Red bull",q:5},{n:"Lipton Peach Iced Tea",q:2},{n:"Aloe Vera Drink",q:2},{n:"Mother Sugar free",q:11},{n:"Powerade",q:3},{n:"Water",q:3},{n:"Carmans Protein New",q:1},{n:"Aero mint",q:3},{n:"Boost",q:20},{n:"Snickers",q:3},{n:"Dairy",q:18},{n:"Kit Kat",q:2},{n:"Muesli",q:6},{n:"Twix",q:6},{n:"Choc Chip",q:5},{n:"Noodles",q:3},{n:"mix lollies",q:5},{n:"Salted Caramel",q:1},{n:"Tuna Treats",q:1},{n:"Smith Ck",q:2},{n:"Smith Sv",q:5},{n:"RR honey",q:1}] },
+  ],
+};
+
+let currentFiller=null,route=[],machineIdx=0,itemIdx=0,skipped=[],totalItems=0,pickedCount=0;
+let isListening=false,recognition=null,ttsActive=false;
+
+function selectFiller(name){
+  currentFiller=name;
+  route=ROUTES[name];
+  machineIdx=0;itemIdx=0;skipped=[];pickedCount=0;
+  totalItems=route.reduce((s,m)=>s+m.items.length,0);
+  document.querySelectorAll('.filler-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.filler===name);
+  });
+  document.getElementById('hdrSub').textContent=name+' • '+route.length+' machines • '+totalItems+' items';
+  document.getElementById('screenPick').style.display='flex';
+  document.getElementById('screenDone').style.display='none';
+  renderTabs();render();
+}
+
+function renderTabs(){
+  const tabs=document.getElementById('tabs');
+  tabs.innerHTML='';
+  route.forEach((m,i)=>{
+    const t=document.createElement('div');
+    t.className='tab'+(i===machineIdx?' cur':'')+(i<machineIdx?' done':'');
+    t.textContent='T'+m.trip+' • '+m.loc;
+    t.onclick=()=>jumpMachine(i);
+    tabs.appendChild(t);
+  });
+}
+
+function jumpMachine(i){
+  machineIdx=i;itemIdx=0;
+  renderTabs();render();
+}
+
+function render(){
+  if(machineIdx>=route.length){finish();return;}
+  const m=route[machineIdx];
+  if(itemIdx>=m.items.length){
+    machineIdx++;itemIdx=0;
+    renderTabs();render();return;
+  }
+  const it=m.items[itemIdx];
+  document.getElementById('locName').textContent=m.loc+' (Trip '+m.trip+')';
+  document.getElementById('countTxt').textContent='Item '+(itemIdx+1)+' of '+m.items.length;
+  document.getElementById('itemName').textContent=it.n;
+  document.getElementById('itemQty').textContent=it.q;
+  const prog=(pickedCount+skipped.length)/totalItems*100;
+  document.getElementById('progFill').style.width=prog+'%';
+  if(isListening) speakAndPause('Pick '+it.q+' '+it.n);
+}
+
+function confirmPick(){
+  pickedCount++;
+  setFb('Picked ✓','ok');
+  itemIdx++;
+  setTimeout(render,150);
+}
+
+function skipItem(){
+  const m=route[machineIdx];const it=m.items[itemIdx];
+  skipped.push(it.n+' x'+it.q+' @ '+m.loc);
+  setFb('Skipped','err');
+  itemIdx++;
+  setTimeout(render,150);
+}
+
+function setFb(t,c){
+  const f=document.getElementById('fb');
+  f.textContent=t;f.className='fb '+(c||'');
+  setTimeout(()=>{f.textContent='';f.className='fb';},900);
+}
+
+function finish(){
+  document.getElementById('screenPick').style.display='none';
+  document.getElementById('screenDone').style.display='flex';
+  document.getElementById('doneTitle').textContent='Done, '+currentFiller+'!';
+  document.getElementById('doneSub').textContent=pickedCount+' picked'+(skipped.length?' • '+skipped.length+' skipped':'');
+  if(skipped.length){
+    document.getElementById('skipBox').style.display='block';
+    document.getElementById('skipList').innerHTML=skipped.map(s=>'<div class="skip-row">'+s+'</div>').join('');
+  }
+  stopMic();
+}
+
+function restart(){
+  currentFiller=null;route=[];machineIdx=0;itemIdx=0;skipped=[];pickedCount=0;
+  document.querySelectorAll('.filler-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('hdrSub').textContent='Select a filler to start';
+  document.getElementById('progFill').style.width='0%';
+  document.getElementById('tabs').innerHTML='';
+  document.getElementById('screenPick').style.display='none';
+  document.getElementById('screenDone').style.display='none';
+  document.getElementById('skipBox').style.display='none';
+  stopMic();
+}
+
+function toggleMic(){
+  if(isListening){stopMic();}else{startMic();}
+}
+
+function startMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){setFb('Voice not supported','err');return;}
+  isListening=true;
+  requestWakeLock();
+  spawnRecognition();
+  document.getElementById('micBtn').textContent='🎤 Voice On';
+  document.getElementById('micBtn').style.color='#00c853';
+  document.getElementById('micBtn').style.borderColor='#00c853';
+  render();
+}
+
+function spawnRecognition(){
+  if(!isListening) return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  try{
+    if(recognition){try{recognition.abort();}catch(e){}}
+    recognition=new SR();
+    recognition.continuous=true;
+    recognition.interimResults=false;
+    recognition.lang='en-AU';
+    recognition.onresult=(e)=>{
+      if(ttsActive) return; // ignore results captured during TTS
+      const cmd=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
+      handleCmd(cmd);
+    };
+    recognition.onerror=(e)=>{
+      if(e.error==='no-speech') return;
+      if(e.error==='network'){
+        showNet(false);
+        // try again in 3s
+        setTimeout(()=>{if(isListening)spawnRecognition();},3000);
+        return;
+      }
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        setFb('Mic permission denied','err');
+        stopMic();
+        return;
+      }
+      // any other error - just respawn
+    };
+    recognition.onend=()=>{
+      if(!isListening) return;
+      if(ttsActive){
+        // recognition ended because TTS started; will be respawned by TTS handler
+        return;
+      }
+      // small delay avoids InvalidStateError race
+      setTimeout(()=>{if(isListening&&!ttsActive)spawnRecognition();},250);
+    };
+    recognition.start();
+  }catch(err){
+    // start() can throw if previous instance still alive
+    setTimeout(()=>{if(isListening)spawnRecognition();},500);
+  }
+}
+
+function stopMic(){
+  isListening=false;
+  if(recognition){try{recognition.abort();}catch(e){}recognition=null;}
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  ttsActive=false;
+  releaseWakeLock();
+  const b=document.getElementById('micBtn');
+  if(b){b.textContent='🎤 Start Voice';b.style.color='';b.style.borderColor='';}
+}
+
+function handleCmd(cmd){
+  if(!currentFiller)return;
+  if(cmd.includes('pick')||cmd.includes('got it')||cmd.includes('yes')||cmd.includes('done')||cmd.includes('next')){
+    confirmPick();
+  }else if(cmd.includes('skip')){
+    skipItem();
+  }
+}
+
+// Pause mic while TTS speaks, resume after - they fight on Android
+function speakAndPause(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  ttsActive=true;
+  // stop mic so it doesn't capture our own voice
+  if(recognition){try{recognition.abort();}catch(e){}}
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=0.95;u.pitch=1;
+  u.onend=()=>{
+    ttsActive=false;
+    // small gap then resume listening
+    setTimeout(()=>{if(isListening)spawnRecognition();},150);
+  };
+  u.onerror=()=>{
+    ttsActive=false;
+    setTimeout(()=>{if(isListening)spawnRecognition();},150);
+  };
+  window.speechSynthesis.speak(u);
+}
+
+function speak(text){
+  // kept for compatibility - just routes through speakAndPause
+  speakAndPause(text);
+}
+
+// ---- WAKE LOCK: keep screen on during shift ----
+let wakeLock=null;
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock=await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release',()=>{wakeLock=null;});
+    }
+  }catch(e){/* ignore - device may not support */}
+}
+function releaseWakeLock(){
+  if(wakeLock){try{wakeLock.release();}catch(e){}wakeLock=null;}
+}
+// Re-acquire wake lock if page becomes visible again (Android releases it on background)
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && isListening){
+    requestWakeLock();
+    // also respawn recognition - Android often kills it when backgrounded
+    if(!ttsActive) setTimeout(spawnRecognition,300);
+  }
+});
+
+// ---- NETWORK STATUS ----
+function showNet(online){
+  const p=document.getElementById('netPill');
+  if(online){
+    p.className='net-pill online';
+    p.textContent='● Online';
+  }else{
+    p.className='net-pill offline';
+    p.textContent='⚠ Offline - voice may fail';
+  }
+}
+window.addEventListener('offline',()=>showNet(false));
+window.addEventListener('online',()=>{
+  showNet(true);
+  if(isListening) setTimeout(spawnRecognition,500);
+});
+// Check initial state
+if(!navigator.onLine) showNet(false);
+
+</script>
+
+<style>
+.gear{position:absolute;top:14px;right:14px;background:transparent;border:none;color:#666;font-size:18px;cursor:pointer;padding:6px;}
+.gear:active{color:#00c853;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:5000;display:none;flex-direction:column;padding:16px;}
+.modal.show{display:flex;}
+.modal h2{font-size:16px;margin-bottom:8px;color:#00c853;}
+.modal .hint{font-size:11px;color:#666;margin-bottom:10px;line-height:1.5;}
+.modal textarea{flex:1;background:#0a0a0a;border:1px solid #222;color:#fff;border-radius:10px;padding:12px;font-family:monospace;font-size:11px;resize:none;-webkit-user-select:text;user-select:text;}
+.modal .row{display:flex;gap:10px;margin-top:12px;}
+.modal button{flex:1;padding:14px;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer;}
+.modal .ok{background:#00c853;color:#000;}
+.modal .cancel{background:#1e1e1e;color:#888;border:1px solid #333;}
+.modal .stat{font-size:12px;color:#666;margin-top:6px;min-height:18px;}
+.modal .pdf-row{background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;margin-bottom:10px;}
+.modal .pdf-btn{display:inline-block;background:#00c853;color:#000;padding:12px 16px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;}
+.modal .pdf-btn:active{background:#00a843;}
+.modal .pdf-stat{font-size:11px;color:#888;margin-top:8px;line-height:1.4;}
+.modal .pdf-stat.err{color:#ff6b6b;}
+.modal .pdf-stat.ok{color:#00c853;}
+.modal .or-sep{text-align:center;color:#444;font-size:10px;margin:12px 0 6px;letter-spacing:1px;}
+.modal .stat.err{color:#ff6b6b;}
+.modal .stat.ok{color:#00c853;}
+</style>
+
+<button class="gear" onclick="openLoader()" title="Load new data">⚙</button>
+<div class="modal" id="loader">
+  <h2>Load New Picklist</h2>
+  <div class="pdf-row">
+    <label class="pdf-btn">
+      📄 Choose PDF file
+      <input type="file" id="pdfFile" accept="application/pdf" onchange="loadPdf(this.files[0])" style="display:none">
+    </label>
+    <div class="pdf-stat" id="pdfStat">Pick a PDF and we'll read it for you.</div>
+  </div>
+  <div class="or-sep">— or paste text —</div>
+  <div class="hint">Open the picklist PDF → Select All → Copy → paste below.</div>
+  <textarea id="loaderText" placeholder="Paste raw picklist text here..."></textarea>
+  <div class="stat" id="loaderStat"></div>
+  <div class="row">
+    <button class="cancel" onclick="closeLoader()">Cancel</button>
+    <button class="ok" onclick="loaderParse()">Load</button>
+  </div>
+  <div class="row">
+    <button class="cancel" onclick="loaderReset()">Reset to built-in</button>
+  </div>
+</div>
+
+<script>
+// ---- Paste-loader: parse picklist text into ROUTES, save to localStorage ----
+// Product list is NOT hardcoded — we infer products structurally by finding the
+// longest common location-prefix across all records in each trip. That way a new
+// SKU appearing in the source data is picked up automatically instead of being
+// silently dropped at parse time.
+function _parsePicklist(text){
+  text = text.replace(/\s+/g, ' ').replace(/Line ID Filler Name[\s\S]*?Picked/g, ' ').replace(/\s+/g, ' ').trim();
+  const _DATE = '(?:\\d{4}-\\d-\\d{1,2}|\\d{2}\\/\\d{2}\\/\\d{4})';
+  const _NAME = "[A-Z][A-Za-z'\u2019\\-]*(?:\\s+[A-Z][A-Za-z'\u2019\\-]*){0,2}";
+  const fillerRe = new RegExp(`\\b1\\s+(${_NAME})\\s+\\d{1,2}\\s+${_DATE}`, 'g');
+  const fillerSet = new Set();
+  let mm; while ((mm = fillerRe.exec(text))) fillerSet.add(mm[1]);
+  if (!fillerSet.size) {
+    const hasSummaryKeywords = /\b(Chips|Confec|Bottles|Cans|Meals)\s/.test(text);
+    if (hasSummaryKeywords) throw new Error('You pasted the summary pages (product totals). The app needs the detail pages with rows like "1 Dadir 1 ... RR chilli 3". Scroll past the summary in the PDF and try again.');
+    throw new Error('No filler/date patterns found. Expected rows like "1 Dadir 1 2026-5-28 131183 12 L U Simon RR chilli 3". First 80 chars of paste: ' + text.slice(0, 80));
+  }
+  const _esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const fillerAlt = [...fillerSet].sort((a,b)=>b.length-a.length).map(_esc).join('|');
+  const recRe = new RegExp(`(?=\\b1\\s+(?:${fillerAlt})\\s+\\d{1,2}\\s+${_DATE})`, 'g');
+  const recParse = new RegExp(`^1\\s+(${fillerAlt})\\s+(\\d{1,2})\\s+${_DATE}\\s+(\\S+)\\s+(.+?)\\s+(\\d+)\\s*$`);
+  const chunks = (' ' + text).split(recRe);
+
+  // Phase 1: extract raw rows by trip
+  const rawRows = {}; // filler -> trip -> [{locId, middle, qty}]
+  let parsed = 0, failed = 0;
+  for (let chunk of chunks){
+    chunk = chunk.trim(); if (!chunk) continue;
+    const m = chunk.match(recParse);
+    if (!m){ failed++; continue; }
+    const [, filler, tripStr, locId, middle, qtyStr] = m;
+    const trip = +tripStr, qty = +qtyStr;
+    if (!rawRows[filler]) rawRows[filler] = {};
+    if (!rawRows[filler][trip]) rawRows[filler][trip] = [];
+    rawRows[filler][trip].push({locId, middle, qty});
+  }
+
+  // Token-level longest common prefix; reject unless it begins with a 2-digit token
+  // (locName always starts with a zero-padded 2-digit number).
+  function _tokenLCP(middles){
+    if (middles.length < 2) return null;
+    const tokenized = middles.map(m => m.split(' '));
+    const minLen = Math.min(...tokenized.map(t => t.length));
+    const pre = [];
+    for (let i = 0; i < minLen; i++){
+      const first = tokenized[0][i];
+      if (tokenized.every(t => t[i] === first)) pre.push(first); else break;
+    }
+    if (!pre.length || !/^\d{2}$/.test(pre[0])) return null;
+    return pre.join(' ');
+  }
+
+  // Phase 2: per-trip LCP → location; collect discovered products as fallback
+  const discovered = new Set();
+  const tripPrefix = {};
+  for (const f of Object.keys(rawRows)){
+    for (const t of Object.keys(rawRows[f])){
+      const prefix = _tokenLCP(rawRows[f][t].map(r => r.middle));
+      tripPrefix[f + '/' + t] = prefix;
+      if (prefix !== null){
+        for (const r of rawRows[f][t]){
+          const p = r.middle.slice(prefix.length).trim();
+          if (p) discovered.add(p);
+        }
+      }
+    }
+  }
+  const discSorted = [...discovered].sort((a,b) => b.length - a.length);
+
+  // Phase 3: build final routes (with fallback for single-record trips)
+  const out = {};
+  for (const f of Object.keys(rawRows)){
+    for (const t of Object.keys(rawRows[f])){
+      const trip = +t;
+      const recs = rawRows[f][t];
+      const prefix = tripPrefix[f + '/' + t];
+      let loc = null;
+      const items = [];
+      for (const r of recs){
+        let product = null;
+        if (prefix !== null){
+          product = r.middle.slice(prefix.length).trim();
+        } else {
+          // single-record trip: try discovered products as longest suffix
+          for (const p of discSorted){
+            if (r.middle === p || r.middle.endsWith(' ' + p)){ product = p; break; }
+          }
+          // last-resort: take the last token (will sort to end as a canary)
+          if (!product){ const toks = r.middle.split(' '); product = toks[toks.length-1]; }
+        }
+        if (!product){ failed++; continue; }
+        if (!loc){
+          const locName = (prefix !== null) ? prefix : r.middle.slice(0, r.middle.length - product.length).trim();
+          loc = (r.locId + ' ' + locName).trim();
+        }
+        items.push({n: product, q: r.qty});
+        parsed++;
+      }
+      if (!out[f]) out[f] = {};
+      out[f][trip] = {trip, loc, items};
+    }
+  }
+  const result = {};
+  for (const f of Object.keys(out)){
+    result[f] = Object.keys(out[f]).map(k=>+k).sort((a,b)=>a-b).map(t=>out[f][t]);
+  }
+  return {routes: result, parsed, failed};
+}
+
+// ---- PDF upload: lazy-load PDF.js on first use, extract text, feed to parser ----
+let _pdfjsReady = null;
+function _loadPdfJs(){
+  if (_pdfjsReady) return _pdfjsReady;
+  _pdfjsReady = new Promise((resolve, reject) => {
+    if (window['pdfjs-dist/build/pdf']) { resolve(window['pdfjs-dist/build/pdf']); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      const lib = window['pdfjs-dist/build/pdf'];
+      lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(lib);
+    };
+    s.onerror = () => reject(new Error('Could not load PDF library. Check your internet connection.'));
+    document.head.appendChild(s);
+  });
+  return _pdfjsReady;
+}
+
+async function loadPdf(file){
+  const stat = document.getElementById('pdfStat');
+  if (!file){ stat.textContent='No file selected.'; stat.className='pdf-stat err'; return; }
+  stat.textContent = 'Loading PDF library...';
+  stat.className = 'pdf-stat';
+  try {
+    const pdfjsLib = await _loadPdfJs();
+    stat.textContent = 'Reading PDF...';
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    let text = '';
+    for (let p = 1; p <= pdf.numPages; p++){
+      stat.textContent = 'Reading page ' + p + ' of ' + pdf.numPages + '...';
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      text += ' ' + content.items.map(it => it.str).join(' ');
+    }
+    stat.textContent = 'Parsing ' + Math.round(text.length/1024) + 'KB of text...';
+    const {routes, parsed, failed} = _parsePicklist(text);
+    const fillers = Object.keys(routes);
+    if (!fillers.length) throw new Error('PDF read but no pick records found inside it. Wrong PDF?');
+    localStorage.setItem('picklistRoutes', JSON.stringify(routes));
+    localStorage.setItem('picklistLoadedAt', new Date().toISOString());
+    stat.textContent = 'Loaded ' + parsed + ' picks across ' + fillers.length + ' fillers (' + fillers.join(', ') + '). Reloading...';
+    stat.className = 'pdf-stat ok';
+    setTimeout(()=>location.reload(), 900);
+  } catch (e){
+    stat.textContent = 'Failed: ' + e.message;
+    stat.className = 'pdf-stat err';
+    // reset file input so the same file can be retried after a fix
+    document.getElementById('pdfFile').value = '';
+  }
+}
+
+function openLoader(){ document.getElementById('loader').classList.add('show'); }
+function closeLoader(){ document.getElementById('loader').classList.remove('show'); document.getElementById('loaderStat').textContent=''; }
+function loaderParse(){
+  const txt = document.getElementById('loaderText').value;
+  const stat = document.getElementById('loaderStat');
+  if (!txt.trim()){ stat.textContent='Paste text first.'; stat.className='stat err'; return; }
+  try {
+    const {routes, parsed, failed} = _parsePicklist(txt);
+    const fillers = Object.keys(routes);
+    if (!fillers.length) throw new Error('No records parsed.');
+    localStorage.setItem('picklistRoutes', JSON.stringify(routes));
+    localStorage.setItem('picklistLoadedAt', new Date().toISOString());
+    stat.textContent = `Loaded: ${parsed} picks across ${fillers.length} fillers (${fillers.join(', ')}). ${failed?failed+' lines skipped.':''} Reloading...`;
+    stat.className = 'stat ok';
+    setTimeout(()=>location.reload(), 800);
+  } catch(e){
+    stat.textContent = 'Parse failed: ' + e.message;
+    stat.className = 'stat err';
+  }
+}
+function loaderReset(){
+  if (!confirm('Clear loaded data and use built-in routes?')) return;
+  localStorage.removeItem('picklistRoutes');
+  localStorage.removeItem('picklistLoadedAt');
+  location.reload();
+}
+
+// ---- Boot: override ROUTES from localStorage if present, build buttons ----
+// ============================================================================
+// WAREHOUSE WALK ORDER — pick-sort spec.  *** VERIFY LAYOUT AS OF: 2026-06-02 ***
+// If the warehouse is rearranged or a new product appears, update WALK_ORDER.
+// Names are lowercased data tokens; case variants collapse automatically.
+// ============================================================================
+const WALK_ORDER = [
+  // 1. DRINKS WALL (left -> right)
+  "coke zero","pepsi max","sunkist zero sugar","sunkist","solo","solo zero sugar",
+  "lemonade","creaming soda","pasito","coconut water","mother sugar free",
+  "v blue","v energy","v energy sugar free","red bull","red bull sugar free",
+  "powerade","gatorade","gatorade no sugar","gatorade sugar free",
+  "aloe vera drink","aloe vera drink 2","water","lipton peach iced tea","sparkling water",
+  // 2. CHOCOLATES
+  "aitken bar","kit kat","dairy","twix","boost","wagon wheels","snickers","mars bar",
+  "aero mint","muesli","carmans protein new","tuna treats","up &go pro","extra gum",
+  "tuna pasta","apricot yoghurt","choc oat",
+  // 3. COOKIES
+  "salted caramel","choc chip","white choc m",
+  // 4. LOLLIES
+  "mix lollies",
+  // 5. NOODLES (second-to-last: bulky, goes on top so it isn't crushed)
+  "noodles",
+  // 6. CHIPS (last: bulky)
+  "rr chilli","rr honey","smith sv","smith ck","shapes bbq"
+];
+// Spelling-variant aliases. Keys/values matched after _norm (case + spacing + punct insensitive).
+const ALIASES = {
+  "carmens protein new": "carmans protein new",
+  "indulge bar":         "aitken bar",   // spec: Aitken Bar = Indulge Bar = Atkins
+  "atkins":              "aitken bar",   //   "
+  "mixed lollies":       "mix lollies"   // source-data drift, same product
+};
+// PERMANENT removals — structural business rules, survive restocks. Exact match (after _norm).
+const PERMANENT_REMOVE = ["coke"];                 // regular Coke = slabs (Coke Zero is NOT removed)
+// TEMPORARY removals — EDIT THESE as stock changes. Re-check regularly.
+const TEMP_REMOVE = ["obento noodles","vimto","mymusclechef mix"]; // out of stock / no-pick
+
+// _norm strips spaces + punctuation so source-data drift (extra space around "&", a dash that
+// appears in "MyMuscleChef - Mix", capitalisation) doesn't cause silent miss-sort or miss-remove.
+const _norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const _WALK_LOOKUP = {}; WALK_ORDER.forEach((n,i) => _WALK_LOOKUP[_norm(n)] = i);
+const _ALIASES_N = {};
+for (const k of Object.keys(ALIASES)) _ALIASES_N[_norm(k)] = _norm(ALIASES[k]);
+const _PERM_N = PERMANENT_REMOVE.map(_norm);
+const _TEMP_N = TEMP_REMOVE.map(_norm);
+function _walkIndex(name){ let k=_norm(name); if(_ALIASES_N[k]) k=_ALIASES_N[k]; const i=_WALK_LOOKUP[k]; return i===undefined?9999:i; }
+function _isRemoved(name){ const k=_norm(name); return _PERM_N.includes(k)||_TEMP_N.includes(k); }
+// Sort + filter every trip's items by walk order (idempotent; safe to run repeatedly)
+function applyWalkOrder(routes){
+  Object.keys(routes).forEach(f=>{
+    routes[f].forEach(trip=>{
+      trip.items = trip.items
+        .filter(it => !_isRemoved(it.n))
+        .sort((a,b) => _walkIndex(a.n) - _walkIndex(b.n));
+    });
+  });
+  return routes;
+}
+
+(function boot(){
+  try {
+    const saved = localStorage.getItem('picklistRoutes');
+    if (saved){
+      const parsed = JSON.parse(saved);
+      // Replace built-in ROUTES contents in-place
+      Object.keys(ROUTES).forEach(k=>delete ROUTES[k]);
+      Object.assign(ROUTES, parsed);
+    }
+  } catch(e){ console.warn('Bad saved routes', e); }
+  // Sort + filter all picks into warehouse walking order (built-in or loaded data alike)
+  applyWalkOrder(ROUTES);
+  // Build filler buttons
+  const row = document.getElementById('fillerRow');
+  const names = Object.keys(ROUTES);
+  row.innerHTML = '';
+  names.forEach(name=>{
+    const b = document.createElement('div');
+    b.className = 'filler-btn';
+    b.dataset.filler = name;
+    b.textContent = '👤 ' + name;
+    b.onclick = ()=>selectFiller(name);
+    row.appendChild(b);
+  });
+  // Show load date in header
+  const loadedAt = localStorage.getItem('picklistLoadedAt');
+  const d = document.getElementById('hdrDate');
+  if (d){
+    if (loadedAt){
+      const dt = new Date(loadedAt);
+      d.textContent = '— ' + dt.toLocaleDateString(undefined,{day:'2-digit',month:'short'});
+    } else {
+      d.textContent = '— 28 May';
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
