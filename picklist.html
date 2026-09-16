@@ -612,7 +612,7 @@ function loaderReset(){
 
 // ---- Boot: override ROUTES from localStorage if present, build buttons ----
 // ============================================================================
-// WAREHOUSE WALK ORDER — pick-sort spec.  *** VERIFY LAYOUT AS OF: 2026-06-02 ***
+// WAREHOUSE WALK ORDER — pick-sort spec.  *** VERIFY LAYOUT AS OF: 2026-09-16 ***
 // If the warehouse is rearranged or a new product appears, update WALK_ORDER.
 // Names are lowercased data tokens; case variants collapse automatically.
 // ============================================================================
@@ -620,7 +620,7 @@ const WALK_ORDER = [
   // 1. DRINKS WALL (left -> right)
   "coke zero","pepsi max","sunkist zero sugar","sunkist","solo","solo zero sugar",
   "lemonade","creaming soda","pasito","coconut water","mother sugar free",
-  "v blue","v energy","v energy sugar free","red bull","red bull sugar free",
+  "v blue","v energy","v energy sugar free","red bull","red bull sugar free","v blue zero sugar",
   "powerade","gatorade","gatorade no sugar","gatorade sugar free",
   "aloe vera drink","aloe vera drink 2","water","lipton peach iced tea","sparkling water",
   // 2. CHOCOLATES
@@ -641,7 +641,8 @@ const ALIASES = {
   "carmens protein new": "carmans protein new",
   "indulge bar":         "aitken bar",   // spec: Aitken Bar = Indulge Bar = Atkins
   "atkins":              "aitken bar",   //   "
-  "mixed lollies":       "mix lollies"   // source-data drift, same product
+  "mixed lollies":       "mix lollies",  // source-data drift, same product
+  "v blue zore sugar":   "v blue zero sugar" // typo variant in source data
 };
 // PERMANENT removals — structural business rules, survive restocks. Exact match (after _norm).
 const PERMANENT_REMOVE = ["coke"];                 // regular Coke = slabs (Coke Zero is NOT removed)
